@@ -320,13 +320,13 @@ class ContentHostDetailsView(BaseLoggedInView):
             }
         )
 
-        def read(self):
+        def read(self, lce=None):
             """Sometimes no checkboxes are checked off by default, selecting
             "Show All" in such case.
             """
-            if (
-                    self.show_all.read() is False
-                    and self.limit_to_lce.read() is False):
+            if lce is not None:
+                self.limit_to_lce.fill(True)
+            else:
                 self.show_all.fill(True)
             return super().read()
 

@@ -33,9 +33,9 @@ class ContentHostEntity(BaseEntity):
         view = self.navigate_to(self, 'All')
         return view.read()
 
-    def read(self, entity_name, widget_names=None):
+    def read(self, entity_name, widget_names=None, lce=None):
         """Read content host details, optionally read only the widgets in widget_names."""
-        view = self.navigate_to(self, 'Edit', entity_name=entity_name)
+        view = self.navigate_to(self, 'Edit', entity_name=entity_name, lce=lce)
         return view.read(widget_names=widget_names)
 
     def execute_package_action(self, entity_name, action_type, value):
@@ -195,3 +195,10 @@ class EditContentHost(NavigateStep):
         entity_name = kwargs.get('entity_name')
         self.parent.search(entity_name)
         self.parent.table.row(name=entity_name)['Name'].widget.click()
+
+@navigator.register(ContentHostEntity, 'Read')
+class ReadContentHost(EditContentHost):
+    def post_navigate(self, _tries, *args, **kwargs):
+        lce_checkbox = kwargs.get('lce')
+        if lce_checkbox is not None:
+            self.view.repository_sets.limit_to_lce.fill(lce_checkbox)
