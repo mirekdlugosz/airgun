@@ -33,10 +33,22 @@ class ContentHostEntity(BaseEntity):
         view = self.navigate_to(self, 'All')
         return view.read()
 
-    def read(self, entity_name, widget_names=None, lce=None):
+    def read(self, entity_name, widget_names=None, limit_to_lce=None):
         """Read content host details, optionally read only the widgets in widget_names."""
-        view = self.navigate_to(self, 'Edit', entity_name=entity_name, lce=lce)
-        return view.read(widget_names=widget_names)
+        view = self.navigate_to(self, 'Edit', entity_name=entity_name)
+        if not limit_to_lce:
+            return view.read(widget_names=widget_names)
+
+        if widget_names is None:
+            widget_names = [widget.__class__.__name__ for widget
+                            in view.sub_widgets if hasattr(widget, 'TAB_LOCATOR')]
+        widget_names = [widget for widget in widget_names if widget != 'repository_sets']
+        widget_values = {}
+        if widget_names:
+            widget_values = view.read(widget_names=widget_names)
+        view.repository_sets.limit_to_lce.fill(limit_to_lce)
+        repository_sets_value = view.repository_sets.read()
+        return {**widget_values, **repository_sets_value}
 
     def execute_package_action(self, entity_name, action_type, value):
         """Execute remote package action on a content host
@@ -195,10 +207,3 @@ class EditContentHost(NavigateStep):
         entity_name = kwargs.get('entity_name')
         self.parent.search(entity_name)
         self.parent.table.row(name=entity_name)['Name'].widget.click()
-
-@navigator.register(ContentHostEntity, 'Read')
-class ReadContentHost(EditContentHost):
-    def post_navigate(self, _tries, *args, **kwargs):
-        lce_checkbox = kwargs.get('lce')
-        if lce_checkbox is not None:
-            self.view.repository_sets.limit_to_lce.fill(lce_checkbox)
